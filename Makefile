@@ -1,19 +1,22 @@
 # Makefile for Azure Databricks Data Engineering Project
 
-.PHONY: help install test lint format clean deploy-infra deploy-databricks run-pipeline
+.PHONY: help install test lint format clean deploy-infra deploy-databricks run-pipeline bundle-validate bundle-deploy bundle-run
 
 # Default target
 help:
-	@echo "Available targets:"
-	@echo "  install          - Install Python dependencies"
+        @echo "Available targets:"
+        @echo "  install          - Install Python dependencies"
 	@echo "  test             - Run unit tests"
 	@echo "  test-integration - Run integration tests"
 	@echo "  lint             - Run linting checks"
 	@echo "  format           - Format code with black"
 	@echo "  clean            - Clean up temporary files"
 	@echo "  deploy-infra     - Deploy Azure infrastructure"
-	@echo "  deploy-databricks - Deploy Databricks configuration"
-	@echo "  run-pipeline     - Run data pipeline"
+        @echo "  deploy-databricks - Deploy Databricks configuration"
+        @echo "  run-pipeline     - Run data pipeline"
+        @echo "  bundle-validate  - Validate Databricks Asset Bundle configuration"
+        @echo "  bundle-deploy    - Deploy Databricks Asset Bundle to the target workspace"
+        @echo "  bundle-run       - Trigger the bundle job"
 	@echo "  setup-dev        - Setup development environment"
 
 # Install dependencies
@@ -64,7 +67,17 @@ deploy-databricks:
 
 # Run data pipeline
 run-pipeline:
-	python scripts/run_pipeline.py --stage all
+        python scripts/run_pipeline.py --stage all
+
+# Databricks bundle helpers
+bundle-validate:
+        databricks bundle validate --target dev
+
+bundle-deploy:
+        databricks bundle deploy --target dev
+
+bundle-run:
+        databricks bundle run cicd_pipeline --target dev
 
 # Setup development environment
 setup-dev: install
