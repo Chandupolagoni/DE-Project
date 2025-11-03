@@ -1,0 +1,8 @@
+subscription_id              = "00000000-0000-0000-0000-000000000000"
+tenant_id                    = "00000000-0000-0000-0000-000000000000"
+resource_group_name          = "rg-azure-finance-dev"
+storage_account_name         = "stfinancedev"
+databricks_workspace_name    = "dbw-finance-dev"
+databricks_sp_client_id      = "11111111-1111-1111-1111-111111111111"
+databricks_sp_client_secret  = "changeme"
+unity_metastore_owner        = "data.platform@contoso.com"
