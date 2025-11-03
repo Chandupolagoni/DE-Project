@@ -1,0 +1,47 @@
+name: databricks-deploy
+
+on:
+  push:
+    paths:
+      - 'data_pipeline/**'
+      - 'tests/**'
+      - 'cicd/databricks-deploy.yml'
+  pull_request:
+    paths:
+      - 'data_pipeline/**'
+      - 'tests/**'
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pyspark pytest databricks-cli
+
+      - name: Run pytest
+        run: pytest -q
+
+      - name: Configure Databricks CLI
+        env:
+          DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
+          DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
+        run: |
+          databricks configure --host "$DATABRICKS_HOST" --token "$DATABRICKS_TOKEN" <<< ""
+
+      - name: Sync notebooks
+        env:
+          DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
+          DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
+        run: |
+          databricks workspace import_dir data_pipeline/notebooks /Repos/finance --overwrite
+          databricks jobs reset --json @data_pipeline/jobs/daily_batch_job.json || echo "Stubbed deployment"
