@@ -1,0 +1,13 @@
+# Development configuration for Databricks bundle jobs
+workspace: dev
+pipelines:
+  bronze_to_silver:
+    input_path: dbfs:/mnt/dev/bronze
+    output_path: dbfs:/mnt/dev/silver
+  silver_to_gold:
+    input_path: dbfs:/mnt/dev/silver
+    output_path: dbfs:/mnt/dev/gold
+quality:
+  expectations_table: dev_quality_results
+  alert_emails:
+    - dev-data-eng@example.com

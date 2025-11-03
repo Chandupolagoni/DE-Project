@@ -53,6 +53,22 @@ databricks workspace import_dir . /Shared/data-engineering-project
 python scripts/run_pipeline.py
 ```
 
+### 4. Deploy with Databricks Asset Bundles
+
+The repository includes a Databricks Asset Bundle that codifies the job,
+workspace files and environment specific configuration needed for automated
+deployments.  Once the Databricks CLI (>= 0.205.0) is configured, validate and
+deploy the bundle with:
+
+```bash
+databricks bundle validate --target dev
+databricks bundle deploy --target dev
+databricks bundle run cicd_pipeline --target dev
+```
+
+Update environment variables referenced in `databricks/bundle.yml` to point at
+the appropriate workspace, cluster and service principal for each target.
+
 ## 📊 Data Flow
 
 1. **Ingestion**: Raw data from various sources (CSV, JSON, APIs)

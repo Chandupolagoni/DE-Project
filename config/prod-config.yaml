@@ -1,0 +1,14 @@
+# Production configuration for Databricks bundle jobs
+workspace: prod
+pipelines:
+  bronze_to_silver:
+    input_path: dbfs:/mnt/prod/bronze
+    output_path: dbfs:/mnt/prod/silver
+  silver_to_gold:
+    input_path: dbfs:/mnt/prod/silver
+    output_path: dbfs:/mnt/prod/gold
+quality:
+  expectations_table: prod_quality_results
+  alert_emails:
+    - prod-data-eng@example.com
+    - analytics@example.com

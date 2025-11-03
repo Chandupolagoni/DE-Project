@@ -1,0 +1,102 @@
+bundle:
+  name: azure-de-project
+
+variables:
+  node_type: Standard_DS3_v2
+  min_workers: 1
+  max_workers: 2
+  schedule_cron: "0 0 2 * * ?"
+  schedule_timezone: UTC
+  config_path: ./config/dev-config.yaml
+  owner_group: data-engineering
+
+workspace:
+  root_path: /Workspace/Users/${env.DATABRICKS_USER}/.bundle/${bundle.name}/${bundle.environment}
+  files:
+    jobs:
+      source: ./databricks/jobs
+      path: ./jobs
+    notebooks:
+      source: ./databricks/notebooks
+      path: ./notebooks
+
+resources:
+  jobs:
+    cicd_pipeline:
+      name: ${bundle.name}-${bundle.environment}-cicd
+      job_clusters:
+        - job_cluster_key: shared_job_cluster
+          new_cluster:
+            spark_version: 13.3.x-scala2.12
+            node_type_id: ${var.node_type}
+            autoscale:
+              min_workers: ${var.min_workers}
+              max_workers: ${var.max_workers}
+            spark_conf:
+              spark.databricks.delta.preview.enabled: "true"
+      schedule:
+        quartz_cron_expression: ${var.schedule_cron}
+        timezone_id: ${var.schedule_timezone}
+        pause_status: PAUSED
+      tasks:
+        - task_key: run_full_refresh
+          description: Deploy notebooks and run the medallion pipeline end-to-end.
+          job_cluster_key: shared_job_cluster
+          spark_python_task:
+            python_file: ${workspace.root_path}/jobs/run_pipeline.py
+            parameters:
+              - "--stage"
+              - "all"
+              - "--config"
+              - ${var.config_path}
+        - task_key: data_quality
+          depends_on:
+            - task_key: run_full_refresh
+          description: Execute data quality validations after the pipeline finishes.
+          job_cluster_key: shared_job_cluster
+          spark_python_task:
+            python_file: ${workspace.root_path}/jobs/run_pipeline.py
+            parameters:
+              - "--stage"
+              - "quality"
+              - "--config"
+              - ${var.config_path}
+      permissions:
+        - level: CAN_MANAGE
+          group_name: ${var.owner_group}
+
+  workflows:
+    bundle_sync:
+      job: cicd_pipeline
+      on_update: true
+
+targets:
+  dev:
+    default: true
+    workspace:
+      host: ${env.DATABRICKS_HOST}
+      root_path: /Workspace/Users/${env.DATABRICKS_USER}/.bundle/${bundle.name}/dev
+    run_as:
+      user_name: ${env.DATABRICKS_USER}
+    variables:
+      min_workers: ${env.DATABRICKS_MIN_WORKERS:-1}
+      max_workers: ${env.DATABRICKS_MAX_WORKERS:-2}
+      node_type: ${env.DATABRICKS_NODE_TYPE:-Standard_DS3_v2}
+      config_path: ./config/dev-config.yaml
+      owner_group: ${env.DATABRICKS_OWNER_GROUP:-data-engineering}
+      schedule_cron: "0 0/30 * * * ?"
+
+  prod:
+    workspace:
+      host: ${env.DATABRICKS_PROD_HOST}
+      root_path: /Workspace/Shared/azure-de/${bundle.name}/prod
+    run_as:
+      service_principal_name: ${env.DATABRICKS_PROD_SERVICE_PRINCIPAL}
+    variables:
+      min_workers: ${env.DATABRICKS_PROD_MIN_WORKERS:-2}
+      max_workers: ${env.DATABRICKS_PROD_MAX_WORKERS:-4}
+      node_type: ${env.DATABRICKS_PROD_NODE_TYPE:-Standard_DS3_v2}
+      config_path: ./config/prod-config.yaml
+      owner_group: ${env.DATABRICKS_PROD_OWNER_GROUP:-data-engineering-admins}
+      schedule_cron: "0 0 1 * * ?"
+      schedule_timezone: UTC
